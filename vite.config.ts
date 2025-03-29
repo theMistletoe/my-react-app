@@ -18,6 +18,22 @@ export default defineConfig({
       short_name: 'PPP',
       description: 'share api sample',
       theme_color: '#666666',
+      share_target: {
+        action: '/share-target',
+        method: 'POST',
+        enctype: 'multipart/form-data',
+        params: {
+          title: 'title',
+          text: 'text',
+          url: 'url',
+          files: [
+            {
+              name: 'files',
+              accept: ['image/*', '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx']
+            }
+          ]
+        }
+      }
     },
 
     workbox: {
