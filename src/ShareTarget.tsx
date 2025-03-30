@@ -14,18 +14,48 @@ function ShareTarget() {
 
   useEffect(() => {
     try {
-      // URLパラメータから共有データを取得（GETメソッド）
+      // URLからパラメータを取得
       const params = new URLSearchParams(window.location.search);
-      const title = params.get('title') || '';
-      const text = params.get('text') || '';
-      const url = params.get('url') || '';
       
-      console.log('共有データを受信しました', { title, text, url });
-      setSharedData({ title, text, url });
-      
-      // デバッグ用にローカルストレージにも保存
-      if (title || text || url) {
-        localStorage.setItem('lastSharedData', JSON.stringify({ title, text, url }));
+      // リダイレクトループ防止: URLにパラメータがある場合は、パラメータを削除
+      if (window.location.search) {
+        // URLからパラメータを取得してからクリーンなURLに置き換える
+        const title = params.get('title') || '';
+        const text = params.get('text') || '';
+        const url = params.get('url') || '';
+        
+        console.log('共有データを受信しました', { title, text, url });
+        
+        // データを保存
+        setSharedData({ title, text, url });
+        
+        // デバッグ用にローカルストレージにも保存
+        if (title || text || url) {
+          localStorage.setItem('lastSharedData', JSON.stringify({ title, text, url }));
+          
+          // クリーンなURLに置き換え（リロードループを防止）
+          const cleanUrl = window.location.origin + window.location.pathname;
+          window.history.replaceState({ sharedData: { title, text, url } }, '', cleanUrl);
+        }
+      } else {
+        // URLパラメータがない場合は、履歴に保存されたstate（replaceStateで保存したデータ）を使用
+        const state = window.history.state;
+        if (state && state.sharedData) {
+          setSharedData(state.sharedData);
+          console.log('履歴から共有データを復元しました:', state.sharedData);
+        } else {
+          // ローカルストレージからデータを試行
+          const savedData = localStorage.getItem('lastSharedData');
+          if (savedData) {
+            try {
+              const parsedData = JSON.parse(savedData);
+              setSharedData(parsedData);
+              console.log('ローカルストレージから共有データを復元しました:', parsedData);
+            } catch (e) {
+              console.error('保存データの解析に失敗しました:', e);
+            }
+          }
+        }
       }
     } catch (error) {
       console.error('共有データの処理中にエラーが発生しました:', error);

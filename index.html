@@ -26,8 +26,40 @@
     
     <title>vitereactsharesample + TS</title>
     
-    <!-- iOS共有ハンドラー -->
-    <script src="/ios-share-handler.js"></script>
+    <!-- iOS共有ハンドラー - インライン処理で遅延読み込み -->
+    <script>
+      // 一定時間後に共有ハンドラーを読み込み（リロードループ防止）
+      window.addEventListener('DOMContentLoaded', function() {
+        // 既にURLにパラメータが存在する場合は、すぐに処理
+        if (window.location.search && window.location.pathname === '/share-target') {
+          // URLからパラメータを取得
+          const urlParams = new URLSearchParams(window.location.search);
+          const data = {
+            title: urlParams.get('title') || '',
+            text: urlParams.get('text') || '',
+            url: urlParams.get('url') || ''
+          };
+          
+          // データがあれば保存して、URLからパラメータを削除
+          if (data.title || data.text || data.url) {
+            // データをローカルストレージに保存
+            localStorage.setItem('sharedData', JSON.stringify(data));
+            console.log('共有データを保存しました:', data);
+            
+            // パラメータを削除してリロードループを防止
+            const cleanUrl = window.location.origin + window.location.pathname;
+            window.history.replaceState({ sharedData: data }, document.title, cleanUrl);
+          }
+        } else {
+          // 通常の場合は、遅延してスクリプトを読み込む
+          setTimeout(function() {
+            const script = document.createElement('script');
+            script.src = '/ios-share-handler.js';
+            document.head.appendChild(script);
+          }, 500);
+        }
+      });
+    </script>
   </head>
   <body>
     <div id="root"></div>

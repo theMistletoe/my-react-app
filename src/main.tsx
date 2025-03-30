@@ -5,18 +5,21 @@ import './index.css'
 import App from './App.tsx'
 import ShareTarget from './ShareTarget.tsx'
 
-// Service Workerの登録
+// Service Workerの登録（シンプル化）
 if ('serviceWorker' in navigator) {
-  // メインのService Worker
-  navigator.serviceWorker.register('/sw.js')
+  // 開発環境ではdev-dist/sw.jsを、本番環境ではsw.jsを使用
+  const swPath = import.meta.env.DEV ? '/dev-dist/sw.js' : '/sw.js';
+  
+  // メインのService Worker（vite-plugin-pwaが生成したもの）
+  navigator.serviceWorker.register(swPath)
     .then(registration => {
       console.log('Main Service Worker registered with scope:', registration.scope);
     })
     .catch(error => {
       console.error('Main Service Worker registration failed:', error);
     });
-    
-  // 共有ターゲット用のService Worker
+  
+  // 共有ターゲット用のService Workerのみ登録
   navigator.serviceWorker.register('/sw-share-target.js')
     .then(registration => {
       console.log('Share Target Service Worker registered with scope:', registration.scope);

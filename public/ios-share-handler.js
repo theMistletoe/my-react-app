@@ -31,9 +31,18 @@
     if (data.title || data.text || data.url) {
       saveSharedData(data);
       
-      // シェアターゲットページへリダイレクト
-      if (window.location.pathname !== '/share-target') {
-        window.location.href = '/share-target';
+      // URLパラメータがある場合の処理
+      if (window.location.search) {
+        // シェアターゲットページでない場合はリダイレクト
+        if (window.location.pathname !== '/share-target') {
+          // パラメータなしでリダイレクト
+          window.location.replace('/share-target');
+          return;
+        }
+        
+        // 既にシェアターゲットページにいる場合は、URLからパラメータを削除するだけ
+        const cleanUrl = window.location.origin + window.location.pathname;
+        history.replaceState(null, document.title, cleanUrl);
       }
     }
   }

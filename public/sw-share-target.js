@@ -1,59 +1,68 @@
-// 共有ターゲットからのPOSTリクエストをインターセプトするService Worker
+// 共有ターゲットのService Worker（GETメソッド対応バージョン）
 
-// POSTデータを処理するための関数
-async function processPostData(formData) {
-  try {
-    const title = formData.get('title') || '';
-    const text = formData.get('text') || '';
-    const url = formData.get('url') || '';
-    const files = formData.getAll('files');
-    
-    // 単純化のため、localStorageを使用（実際のアプリではIndexedDBが推奨）
-    const sharedData = {
-      title,
-      text,
-      url,
-      // File objectはJSONに直接保存できないため、ファイル情報のみを保存
-      files: files.map(file => ({
-        name: file.name,
-        type: file.type,
-        size: file.size,
-        lastModified: file.lastModified
-      }))
-    };
-    
-    // データをWeb Workerの外側に送信
-    self.clients.matchAll().then(clients => {
-      clients.forEach(client => {
-        client.postMessage({
-          type: 'SHARE_TARGET_DATA',
-          data: sharedData
-        });
-      });
-    });
-    
-    return sharedData;
-  } catch (error) {
-    console.error('共有データの処理中にエラーが発生しました:', error);
-    return null;
-  }
-}
-
-// Service Workerのイベントリスナー
+// ServiceWorkerのイベントリスナー
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
   
-  // 共有ターゲットからのPOSTリクエストを処理
-  if (event.request.method === 'POST' && url.pathname === '/share-target') {
-    // レスポンスをクライアントに返す前にフォームデータを処理
-    event.respondWith(
-      (async () => {
-        const formData = await event.request.formData();
-        const data = await processPostData(formData);
+  // 共有ターゲットからのリクエストを処理
+  if (url.pathname === '/share-target' && url.search) {
+    console.log('Service Worker: 共有データを受信しました:', url.search);
+    
+    // リロードループを防止するために、リクエストをインターセプト
+    if (event.request.mode === 'navigate') {
+      // クリーンなURLでリクエストをインターセプト
+      const cleanUrl = url.origin + url.pathname;
+      
+      // パラメータからデータを抽出
+      const params = new URLSearchParams(url.search);
+      const data = {
+        title: params.get('title') || '',
+        text: params.get('text') || '',
+        url: params.get('url') || ''
+      };
+      
+      // データが存在する場合、クリーンなURLへのリクエストを作成
+      if (data.title || data.text || data.url) {
+        console.log('Service Worker: クリーンURLへリダイレクト:', cleanUrl);
         
-        // 処理後、ShareTargetページにリダイレクト
-        return Response.redirect('/share-target', 303);
-      })()
-    );
+        // Response オブジェクトをカスタマイズ
+        const response = new Response(
+          new Blob([
+            `<!DOCTYPE html>
+            <html>
+            <head>
+              <meta charset="utf-8">
+              <title>リダイレクト中...</title>
+              <script>
+                // データを履歴状態に保存
+                const data = ${JSON.stringify(data)};
+                window.history.replaceState({ sharedData: data }, '', '${cleanUrl}');
+                // リロードせずに同じページに遷移
+                window.location.replace('${cleanUrl}');
+              </script>
+            </head>
+            <body>
+              <p>リダイレクト中...</p>
+            </body>
+            </html>`
+          ], { type: 'text/html' })
+        );
+        
+        event.respondWith(response);
+        return;
+      }
+    }
   }
+});
+
+// インストール時に必要なリソースをキャッシュ
+self.addEventListener('install', event => {
+  self.skipWaiting();
+  console.log('Share Target Service Worker installed');
+});
+
+// アクティベーション時の処理
+self.addEventListener('activate', event => {
+  console.log('Share Target Service Worker activated');
+  return self.clients.claim();
 });

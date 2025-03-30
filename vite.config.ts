@@ -77,37 +77,14 @@ export default defineConfig({
     },
 
     workbox: {
-      // アイコンファイルの重複問題を解決するための除外パターン
-      globPatterns: ['**/*.{js,css,html,svg,ico,webp,woff2}'],
-      globIgnores: ['**/*-*.png'], // 重複するPWAアイコンを除外
+      // 基本設定
+      globPatterns: ['**/*.{js,css,html,svg,ico,png,webp}'],
       cleanupOutdatedCaches: true,
       clientsClaim: true,
       skipWaiting: true,
       navigateFallback: 'index.html',
-      // 競合チェックを無効化
-      dontCacheBustURLsMatching: /.*\.(?:png)$/,
-      // チェックサムの競合を回避するための設定
-      manifestTransforms: [
-        (manifest) => {
-          // リビジョン値が衝突するpngファイルのリビジョン情報を一貫させる
-          return {
-            manifest: manifest.filter(entry => !entry.url.endsWith('.png') ||
-                                       entry.url.includes('workbox-')),
-          };
-        },
-      ],
+      // シンプルなキャッシュ設定
       runtimeCaching: [
-        {
-          urlPattern: /\.(?:png)$/i,
-          handler: 'CacheFirst',
-          options: {
-            cacheName: 'images-cache',
-            expiration: {
-              maxEntries: 50,
-              maxAgeSeconds: 30 * 24 * 60 * 60, // 30日
-            },
-          },
-        },
         {
           urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
           handler: 'CacheFirst',
@@ -134,7 +111,7 @@ export default defineConfig({
     },
 
     devOptions: {
-      enabled: false,
+      enabled: true,
       navigateFallback: 'index.html',
       suppressWarnings: true,
       type: 'module',
