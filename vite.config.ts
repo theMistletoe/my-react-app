@@ -18,6 +18,29 @@ export default defineConfig({
       short_name: 'PPP',
       description: 'share api sample',
       theme_color: '#666666',
+      background_color: '#ffffff',
+      display: 'standalone',
+      scope: '/',
+      start_url: '/',
+      icons: [
+        {
+          src: 'pwa-192x192.png',
+          sizes: '192x192',
+          type: 'image/png'
+        },
+        {
+          src: 'pwa-512x512.png',
+          sizes: '512x512',
+          type: 'image/png'
+        },
+        {
+          src: 'pwa-512x512.png',
+          sizes: '512x512',
+          type: 'image/png',
+          purpose: 'maskable'
+        }
+      ],
+      // iOSとAndroidでの共有ターゲット対応
       share_target: {
         action: '/share-target',
         method: 'POST',
@@ -33,13 +56,63 @@ export default defineConfig({
             }
           ]
         }
-      }
+      },
+      // iOS用の追加設定
+      related_applications: [
+        {
+          platform: 'webapp',
+          url: 'https://yourdomain.com/manifest.webmanifest'
+        }
+      ],
+      prefer_related_applications: false,
+      categories: ['productivity', 'utilities'],
+      // iOSにおける共有メニュー挙動の改善
+      shortcuts: [
+        {
+          name: "共有を受け取る",
+          url: "/share-target",
+          icons: [
+            {
+              src: 'pwa-192x192.png',
+              sizes: '192x192',
+              type: 'image/png'
+            }
+          ]
+        }
+      ],
+      orientation: "portrait"
     },
 
     workbox: {
-      globPatterns: ['**/*.{js,css,html,svg,png,ico}'],
+      globPatterns: ['**/*.{js,css,html,svg,png,ico,webp,woff2}'],
       cleanupOutdatedCaches: true,
       clientsClaim: true,
+      skipWaiting: true,
+      navigateFallback: 'index.html',
+      runtimeCaching: [
+        {
+          urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
+          handler: 'CacheFirst',
+          options: {
+            cacheName: 'google-fonts-cache',
+            expiration: {
+              maxEntries: 10,
+              maxAgeSeconds: 60 * 60 * 24 * 365 // 1年
+            }
+          }
+        },
+        {
+          urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
+          handler: 'CacheFirst',
+          options: {
+            cacheName: 'gstatic-fonts-cache',
+            expiration: {
+              maxEntries: 10,
+              maxAgeSeconds: 60 * 60 * 24 * 365 // 1年
+            }
+          }
+        }
+      ]
     },
 
     devOptions: {
