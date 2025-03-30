@@ -40,21 +40,14 @@ export default defineConfig({
           purpose: 'maskable'
         }
       ],
-      // iOSとAndroidでの共有ターゲット対応
+      // シンプルなGETメソッドでの共有ターゲット（iOSでの互換性を高める）
       share_target: {
         action: '/share-target',
-        method: 'POST',
-        enctype: 'multipart/form-data',
+        method: 'GET',
         params: {
           title: 'title',
           text: 'text',
-          url: 'url',
-          files: [
-            {
-              name: 'files',
-              accept: ['image/*', '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx']
-            }
-          ]
+          url: 'url'
         }
       },
       // iOS用の追加設定
@@ -84,12 +77,37 @@ export default defineConfig({
     },
 
     workbox: {
-      globPatterns: ['**/*.{js,css,html,svg,png,ico,webp,woff2}'],
+      // アイコンファイルの重複問題を解決するための除外パターン
+      globPatterns: ['**/*.{js,css,html,svg,ico,webp,woff2}'],
+      globIgnores: ['**/*-*.png'], // 重複するPWAアイコンを除外
       cleanupOutdatedCaches: true,
       clientsClaim: true,
       skipWaiting: true,
       navigateFallback: 'index.html',
+      // 競合チェックを無効化
+      dontCacheBustURLsMatching: /.*\.(?:png)$/,
+      // チェックサムの競合を回避するための設定
+      manifestTransforms: [
+        (manifest) => {
+          // リビジョン値が衝突するpngファイルのリビジョン情報を一貫させる
+          return {
+            manifest: manifest.filter(entry => !entry.url.endsWith('.png') ||
+                                       entry.url.includes('workbox-')),
+          };
+        },
+      ],
       runtimeCaching: [
+        {
+          urlPattern: /\.(?:png)$/i,
+          handler: 'CacheFirst',
+          options: {
+            cacheName: 'images-cache',
+            expiration: {
+              maxEntries: 50,
+              maxAgeSeconds: 30 * 24 * 60 * 60, // 30日
+            },
+          },
+        },
         {
           urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
           handler: 'CacheFirst',

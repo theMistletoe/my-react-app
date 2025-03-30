@@ -6,7 +6,6 @@ interface SharedData {
   title?: string;
   text?: string;
   url?: string;
-  files?: File[];
 }
 
 function ShareTarget() {
@@ -14,60 +13,33 @@ function ShareTarget() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    async function processSharedData() {
-      try {
-        // POSTメソッドの場合はクエリパラメータがない
-        if (window.location.search) {
-          // フォールバック：GETメソッドで共有された場合
-          const params = new URLSearchParams(window.location.search);
-          const title = params.get('title') || '';
-          const text = params.get('text') || '';
-          const url = params.get('url') || '';
-          
-          setSharedData({ title, text, url });
-          setIsLoading(false);
-          return;
-        }
-
-        // POSTメソッドで共有された場合：IndexedDBからデータを取得
-        const data = await getSharedDataFromStorage();
-        
-        if (data) {
-          setSharedData(data);
-        } else {
-          // 保存されたデータがない場合は空のオブジェクトを設定
-          console.warn('共有データが見つかりませんでした');
-        }
-        
-        setIsLoading(false);
-      } catch (error) {
-        console.error('共有データの処理中にエラーが発生しました:', error);
-        setIsLoading(false);
+    try {
+      // URLパラメータから共有データを取得（GETメソッド）
+      const params = new URLSearchParams(window.location.search);
+      const title = params.get('title') || '';
+      const text = params.get('text') || '';
+      const url = params.get('url') || '';
+      
+      console.log('共有データを受信しました', { title, text, url });
+      setSharedData({ title, text, url });
+      
+      // デバッグ用にローカルストレージにも保存
+      if (title || text || url) {
+        localStorage.setItem('lastSharedData', JSON.stringify({ title, text, url }));
       }
+    } catch (error) {
+      console.error('共有データの処理中にエラーが発生しました:', error);
+    } finally {
+      setIsLoading(false);
     }
-
-    processSharedData();
   }, []);
-
-  // IndexedDBから共有データを取得
-  const getSharedDataFromStorage = async (): Promise<SharedData | null> => {
-    // ローカルストレージから一時的に保存された共有データを取得
-    const sharedDataStr = localStorage.getItem('sharedData');
-    if (sharedDataStr) {
-      // 使用後はクリア
-      localStorage.removeItem('sharedData');
-      return JSON.parse(sharedDataStr);
-    }
-    return null;
-  };
 
   if (isLoading) {
     return <div className="share-target-container loading">データを読み込み中...</div>;
   }
 
   // 共有データが空の場合
-  const isEmpty = !sharedData.title && !sharedData.text && !sharedData.url &&
-                 (!sharedData.files || sharedData.files.length === 0);
+  const isEmpty = !sharedData.title && !sharedData.text && !sharedData.url;
 
   return (
     <div className="share-target-container">
@@ -102,30 +74,6 @@ function ShareTarget() {
                   {sharedData.url}
                 </a>
               </p>
-            </div>
-          )}
-          
-          {sharedData.files && sharedData.files.length > 0 && (
-            <div className="shared-item">
-              <h2>ファイル ({sharedData.files.length}):</h2>
-              <ul className="file-list">
-                {sharedData.files.map((file, index) => (
-                  <li key={index} className="file-item">
-                    <div className="file-info">
-                      <strong>{file.name}</strong> ({file.type || '不明なタイプ'}, {(file.size / 1024).toFixed(2)} KB)
-                    </div>
-                    {file.type.startsWith('image/') && (
-                      <div className="file-preview">
-                        <img
-                          src={URL.createObjectURL(file)}
-                          alt={`Preview of ${file.name}`}
-                          onLoad={() => URL.revokeObjectURL(URL.createObjectURL(file))}
-                        />
-                      </div>
-                    )}
-                  </li>
-                ))}
-              </ul>
             </div>
           )}
         </>
